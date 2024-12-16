@@ -126,8 +126,124 @@ Contraseña asociada al usuario anterior.
 - **spring.datasource.driver-class-name=org.postgresql.Driver**: 
 Especifica el driver necesario para conectar con PostgreSQL.
 
-- **spring.jpa.hibernate.ddl-auto=update**:
+- **spring.jpa.hibernate.ddl-auto=update**: 
 Configura el comportamiento de Hibernate para el manejo del esquema de la base de datos:
     - **update**: Actualiza automáticamente las tablas según las entidades del modelo.
     Otros valores posibles: create, create-drop, validate.
+- **spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect**: 
+Define el dialecto específico de PostgreSQL para que Hibernate traduzca las consultas a SQL compatible con esta base de datos.
+- **spring.jpa.show-sql=true**: 
+Muestra en la consola las consultas SQL ejecutadas por la aplicación.
+- **spring.jpa.properties.hibernate.format_sql=true**: 
+Formatea las consultas SQL en la consola para facilitar su lectura.
 
+
+## Implementación de JWT en Spring Boot
+
+### Archivos clave en la configuración de JWT:
+Se crearán los siguientes archivos para implementar la autenticación basada en JWT:
+
+- **ApplicationConfig.java**
+- **SecurityConfig.java**
+- **JwtAuthenticationFilter.java**
+- **JwtService.java**
+- **AuthController.java**
+- **AuthResponse.java**
+- **AuthService.java**
+- **Usuario.java**
+
+---
+
+### **1. ApplicationConfig.java**
+Este archivo configura el `AuthenticationProvider`, que define cómo se buscará la información completa de un usuario en base a su username o ID. Al extender `UserDetails`, se pueden utilizar métodos como `getPassword()` para comparar la contraseña ingresada con la almacenada en la base de datos.  
+
+- La contraseña ingresada se recibe en texto plano y se codifica usando un codificador hash como `BCryptPasswordEncoder`. Esta codificación se compara con la versión hash almacenada en la base de datos.  
+- Si ambas coinciden, se valida correctamente el usuario.  
+
+---
+
+### **2. SecurityConfig.java**
+Este archivo define la configuración de seguridad del backend. Entre sus responsabilidades están:
+- **Deshabilitar Crsf**: Protecciones contra ataques CSRF se desactivan, ya que se emplea JWT para la autenticación, lo que elimina la necesidad de tokens CSRF.
+- **Configurar CORS:** Permite gestionar solicitudes desde orígenes distintos, evitando conflictos al integrar con frameworks frontend como React o Angular. Esto incluye permitir métodos específicos como `OPTIONS` para evitar problemas de preflight requests.
+- **Autorización específica:** Define que solo los endpoints relacionados con `/auth` (login y registro) sean accesibles sin autenticación.
+- **Desactivar sesiones:** Configura el backend como stateless, asegurando que cada petición sea autenticada por el token JWT.
+- **Agregar filtros:** Incluye el `JwtAuthenticationFilter` para manejar la validación de tokens.
+- **Construir el `SecurityFilterChain`:** Define el comportamiento de seguridad a nivel global.
+
+---
+
+### **3. JwtAuthenticationFilter.java**
+Este filtro maneja la lógica de autenticación de JWT a nivel de peticiones HTTP.
+
+- **doFilterInternal:** 
+  - Obtiene el token desde la cabecera `Authorization` de la solicitud.
+  - Si el token es nulo o inválido, devuelve un error HTTP 403.
+  - Valida el usuario contenido en el token y crea un objeto `UserDetails` si el usuario existe.
+  - Verifica si el token es válido antes de autenticar al usuario y proceder con la solicitud.
+
+---
+
+### **4. JwtService.java**
+Este servicio contiene la lógica para manejar los tokens JWT.
+
+- **Generación de tokens:**
+  - Usa la biblioteca JWT para crear un token basado en los detalles del usuario (`UserDetails`).
+  - Utiliza un `HashMap` para añadir claims personalizados al token.
+  - Métodos como `setClaims`, `setSubject`, y `setIssuedAt` configuran el contenido del token, incluyendo el nombre del usuario y su tiempo de expiración.
+- **Decodificación de tokens:**
+  - `getClaims`: Divide las partes del token para obtener y verificar su contenido.
+  - `getExpiration`: Extrae la fecha de expiración del token.
+  - `isTokenExpired`: Verifica si el token ya expiró.
+  - `isTokenValid`: Compara el usuario contenido en el token con los detalles del usuario actual.
+
+---
+
+### **5. AuthController.java**
+Define los endpoints para el login y el registro de usuarios:
+
+- **Login:** Valida las credenciales proporcionadas y devuelve un token JWT.
+- **Registro:** Crea un nuevo usuario en la base de datos y genera un token JWT para el mismo.
+
+---
+
+### **6. AuthResponse.java**
+Este es un modelo simple que encapsula el token JWT generado. Se utiliza como respuesta en los endpoints de autenticación.
+
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AuthResponse {
+    private String token;
+}
+```
+
+---
+
+### **7. AuthService.java**
+Este servicio contiene la lógica central para manejar el login y registro de usuarios:
+
+- **Login:** Valida las credenciales ingresadas y genera un token si son correctas.
+- **Registro:** Crea un nuevo usuario con la contraseña codificada y lo almacena en la base de datos.
+
+---
+
+### **8. Usuario.java**
+Este modelo representa la entidad `Usuario` y extiende la interfaz `UserDetails` de Spring Security.
+
+- **Atributos principales:**
+  - `id`, `nombre`, `usuario` y `contrasena`.
+- **Métodos adicionales:**
+  - Implementa métodos como `getAuthorities`, `getPassword`, y `getUsername` para integrarse con el `AuthenticationProvider`.
+- **Roles:** Actualmente asigna de manera predeterminada el rol `ROLE_USER`.
+
+```java
+@Override
+public Collection<? extends GrantedAuthority> getAuthorities() {
+    return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+}
+```
+
+---

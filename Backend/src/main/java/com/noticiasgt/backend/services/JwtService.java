@@ -34,24 +34,19 @@ public class JwtService {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(user.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis()+1000*60*24))
+                .setIssuedAt(new Date(System.currentTimeMillis())) //Fecha de creación del token
+                .setExpiration(new Date(System.currentTimeMillis()+1000*60*24)) //Fecha de expiración del token en unidades de milisegundos
                 .signWith(getKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
     private Key getKey() {
+        //Decoders.BASE64.decode(KEY_SECRET) convierte la llave secreta en un arreglo de bytes en base 64
+        //Keys.hmacShaKeyFor convierte el arreglo de bytes en una llave secreta
        byte[] keyBytes=Decoders.BASE64.decode(KEY_SECRET);
        return Keys.hmacShaKeyFor(keyBytes);
     }
 
-        //Obtener el nombre de usuario del token
-    public String getUsernameFromToken(String token) {
-        //Claims es una clase de la libreria de JWT que se encarga de guardar los datos del token
-        // en getSubject se obtiene el nombre de usuario que se guardo en el token
-        // es el pedazo de información donde se guardo el nombre de usuario
-        // al importar jsonwebtoken.Claims se puede usar el metodo getSubject
-        return getClaim(token, Claims::getSubject);
-    }
+    
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         //Se hara una comparacion entre el nombre de usuario que se obtiene del token y el nombre de usuario que se obtiene de los userDetails
@@ -62,9 +57,49 @@ public class JwtService {
         return (username.equals(userDetails.getUsername())&& !isTokenExpired(token));
     }
 
+    //Obtener el nombre de usuario del token
+    public String getUsernameFromToken(String token) {
+        //Claims es una clase de la libreria de JWT que se encarga de guardar los datos del token
+        // en getSubject se obtiene el nombre de usuario que se guardo en el token
+        // es el pedazo de información donde se guardo el nombre de usuario
+        // al importar jsonwebtoken.Claims se puede usar el metodo getSubject
+        return getClaim(token, Claims::getSubject);
+    }
+
+    private boolean isTokenExpired(String token)
+    {
+        //Devuelve true si la fecha de expiración del token es antes de la fecha actual
+        return getExpiration(token).before(new Date());
+    }
+
+    private Date getExpiration(String token)
+    {   
+        // En getExpiration se obtiene la fecha de expiración del token
+        //Al importar jsonwebtoken.Claims se puede usar el metodo getExpiration
+        return getClaim(token, Claims::getExpiration);
+    } 
+
+
+    // ================== METODO BASE DE OBTENCION DE DATOS DE LOS CLAIMS ==================
+    //Es un metodo generico que espera un token y una funcion que se encargara de obtener un dato especifico de los claims
+    // En palabras mas simples getClaim es una funcion base que se encarga de obtener datos especificos de los claims
+    // Se uso tanto en getUsernameFromToken como en isTokenExpired para obtener el nombre de usuario y la fecha de expiración
+    // pasandose como parametro Claims::getSubject y Claims::getExpiration para especificar la información que se quiere obtener
+    // y la funcion que se encargara de obtenerla.
+    public <T> T getClaim(String token, Function<Claims,T> claimsResolver)
+    {
+        final Claims claims=getAllClaims(token);
+        //Con apply se ejecuta la funcion que se paso como parametro
+        return claimsResolver.apply(claims);
+    }
+    //===============================================================================
+
     //Obtener todos los claims del token que son los datos que se guardaron en el
+    //Claims en español significa reclamaciones, estas reclamaciones son los datos que se guardaron en el token
     private Claims getAllClaims(String token)
     {
+        //Retorna un objeto de tipo Claims que contiene todos los datos que se guardaron en el token
+        //Se podria decir que es el token pero en forma de objeto
         return Jwts
             .parserBuilder()
             .setSigningKey(getKey())
@@ -73,25 +108,6 @@ public class JwtService {
             .getBody();
     }
 
-    //Es un metodo generico que espera un token y una funcion que se encargara de obtener un dato especifico de los claims
-    public <T> T getClaim(String token, Function<Claims,T> claimsResolver)
-    {
-        final Claims claims=getAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
-
-    private Date getExpiration(String token)
-    {   
-        // En getExpiration se obtiene la fecha de expiración del token
-        //Al importar jsonwebtoken.Claims se puede usar el metodo getExpiration
-        return getClaim(token, Claims::getExpiration);
-    }
-
-    private boolean isTokenExpired(String token)
-    {
-        //Devuelve true si la fecha de expiración del token es antes de la fecha actual
-        return getExpiration(token).before(new Date());
-    }
     
 
 }

@@ -44,24 +44,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
                             //Funciones que se crearon en JwtService
         usuario = jwtService.getUsernameFromToken(token);
-
+        //El SecurityContextHolder es un objeto que se encarga de almacenar los detalles de autenticación del usuario actual
+        // y se puede acceder desde cualquier parte de la aplicación
+        // El getContext() devuelve el contexto de seguridad actual de la aplicación.
+        // El getAuthentication() devuelve un objeto de autenticación que representa al usuario actualmente autenticado.
+        // El ==null verifica si el usuario no esta autenticado para que no se pueda acceder a la aplicacion
+        // dos veces con el mismo usuario
         if(usuario!=null && SecurityContextHolder.getContext().getAuthentication()==null){
+            //Se obtiene el usuario y se verifica si el token es valido
+            //Se carga el usuario en un objeto UserDetails
             final UserDetails userDetails = userDetailsService.loadUserByUsername(usuario);
             if (jwtService.isTokenValid(token, userDetails))
             {
+                // Se crea un objeto UsernamePasswordAuthenticationToken con el usuario, las credenciales y los roles
                 UsernamePasswordAuthenticationToken authToken= new UsernamePasswordAuthenticationToken(
                     userDetails,
-                    null,
+                    null, // Las credenciales sirven para autenticar al usuario, pero en este caso no se necesitan
                     userDetails.getAuthorities());
-
+                //Se crea un objeto WebAuthenticationDetailsSource para obtener los detalles de la autenticacion
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                //Se establece el objeto UsernamePasswordAuthenticationToken en el contexto de seguridad
+                //para que Spring Security pueda acceder a él
+                //El setAuthentication() establece el objeto de autenticación actual en el contexto de seguridad
 
+                //Basicamente con esto autorizamos al usuario a acceder a los endpoins protegidos por Spring Security
+                //Al verificarse que el token es valido
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
             
            
         }
-
+        //El doFilter() llama al siguiente filtro en la cadena de filtros de Spring Security
+        //para que la solicitud continúe su procesamiento
         filterChain.doFilter(request,response);
     }
 
