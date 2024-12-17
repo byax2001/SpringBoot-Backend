@@ -2,6 +2,30 @@
 
 Este proyecto tiene como finalidad explicar los apartados esenciales para operar en Spring Boot.
 
+# Indice
+- [Descripcion del Proyecto](#descripción-del-proyecto)
+- [Instalación de Maven](#instalación-de-maven)
+- [Crear un Proyecto SpringBoot Maven](#crear-un-proyecto-en-maven)
+- [Instalación de Dependencias](#instalación-de-dependencias-presentes-en-el-pomxml)
+- [Proceso para Instalar diversas Librerias en SpringBoot](#instalar-librerías-en-spring-boot)
+- [Conectar SpringBoot con una base de datos](#conectar-spring-boot-con-una-base-de-datos)
+  - [Librerias para Bases de Datos](#instalación-de-librerías)
+  - [Configuración de Application.propierties](#configuración-del-archivo-applicationproperties)
+- [División de un Proyecto Spring Boot](#división-de-un-proyecto-spring-boot)
+- [Implementación JWT SpringBoot](#implementación-de-jwt-en-spring-boot)
+
+## Descripción del proyecto
+El proyecto tiene como objetivo desarrollar el **backend** de una página de noticias. Las funcionalidades principales incluyen:
+
+- **Gestión de usuarios**: Administración del **login** y **registro** de usuarios.
+- **Visualización de noticias**:
+  - Mostrar todas las noticias disponibles.
+  - Implementar un **dropdown de categorías** para filtrar las noticias.
+  - Permitir la visualización de los **detalles de una noticia específica**.
+  - Mostrar **noticias recomendadas** relacionadas.
+
+Este backend servirá como la base para manejar los datos y las funcionalidades necesarias para la página de noticias.
+
 ## Instalación de Maven
 
 Para instalar Maven, sigue estos pasos:
@@ -36,9 +60,9 @@ Se puede utilizar herramientas como IntelliJ IDEA o visitar la página oficial [
 - **Name**: Define el nombre de la carpeta raíz donde se generarán todos los archivos relacionados con el proyecto.
 - **Package Name**: Es el nombre completo del paquete principal donde se alojarán las clases base del proyecto, generado combinando `Group` y `Artifact`.
 
-## Instalar librerías presentes en el `pom.xml`
+## Instalación de Dependencias presentes en el `pom.xml`
 
-Para instalar librerias presentes en pom.xml, utilizar el siguiente comando en la raíz del proyecto:
+Cuando se descarga un proyecto Maven desde un repositorio u otra fuente, se puede instalar las dependencias especificadas en el archivo `pom.xml` utilizando el siguiente comando en la raíz del proyecto:
 
 ```powershell
 mvn clean install
@@ -137,6 +161,34 @@ Muestra en la consola las consultas SQL ejecutadas por la aplicación.
 - **spring.jpa.properties.hibernate.format_sql=true**: 
 Formatea las consultas SQL en la consola para facilitar su lectura.
 
+## División de un Proyecto Spring Boot
+
+La estructura del proyecto se organiza en diferentes paquetes, los cuales deben crearse manualmente para mantener una arquitectura ordenada y funcional. A continuación se describe la función de cada paquete en este proyecto:
+
+- **`config`**:  
+  Contiene las clases Java encargadas de definir las configuraciones globales del proyecto. En este caso, las clases dentro de este paquete establecerán las reglas para manejar los **endpoints** y el **JWT** (JSON Web Token).
+
+- **`controllers`**:  
+  Aquí se crean los **endpoints** que serán consumidos desde el frontend o por otras aplicaciones. Cada clase representa un controlador que expone la lógica accesible a través de peticiones HTTP.
+
+- **`models`**:  
+  Define las clases que representan los **modelos de datos**. Estos se encargan de:  
+   - Manejar las respuestas JSON y los datos de entrada de una petición.  
+   - Mapear la estructura de la base de datos, generando tablas automáticamente según la configuración de las entidades.  
+   - Implementar interfaces como `UserDetails` en un modelo específico (por ejemplo, `User`), para gestionar la autenticación y facilitar el manejo de JWT y filtros.
+
+- **`repositories`**:  
+  Contiene las interfaces **repository** que gestionan la interacción con la base de datos. Se debe crear un **repository** por cada tabla en la base de datos. Además, permite definir **Queries Personalizadas** que serán utilizadas por los servicios.
+
+- **`security`**:  
+  Se encarga de manejar los **filtros de seguridad**, los cuales validan si una petición tiene o no un **token** válido. Solo las peticiones autorizadas podrán acceder a los endpoints.
+
+- **`services`**:  
+  Este paquete contiene las **lógicas de negocio** que serán utilizadas en los controladores. Sus funciones principales incluyen:  
+   - Realizar operaciones sobre la base de datos, como insertar, actualizar o eliminar registros.  
+   - Gestionar un **JwtService**, encargado de la creación, validación y lectura de tokens JWT.
+
+Esta estructura garantiza la separación de responsabilidades y facilita el mantenimiento y escalabilidad del proyecto Spring Boot.
 
 ## Implementación de JWT en Spring Boot
 
